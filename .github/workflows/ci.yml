@@ -59,10 +59,12 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build application
-        run: pnpm run build
+        run: pnpm exec next build
         env:
-          # Provide minimal env vars for build
+          # Provide minimal env vars for build (skip db:migrate for CI)
           POSTGRES_URL: postgresql://user:password@localhost:5432/db
           OLLAMA_BASE_URL: http://localhost:11434
           OLLAMA_MODEL: llama3.2
           ADMIN_PIN: "0000"
+          # Skip database connection during build
+          SKIP_ENV_VALIDATION: "true"
