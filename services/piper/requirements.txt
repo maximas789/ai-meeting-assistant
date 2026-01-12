@@ -2,7 +2,7 @@
 
 # Web framework
 fastapi==0.115.0
-uvicorn[standard]==0.31.0
+uvicorn[standard]==0.40.0
 
 # Piper is installed via system package or binary
 # The piper executable is called via subprocess
