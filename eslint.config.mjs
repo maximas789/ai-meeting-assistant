@@ -11,6 +11,7 @@ const config = [
       "create-agentic-app/**",
       "drizzle/**",
       "scripts/**",
+      "services/**",
     ],
   },
   ...nextConfig,

@@ -1,82 +1,104 @@
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  serial,
+  varchar,
+  text,
+  timestamp,
+  integer,
+  boolean,
+  index,
+} from "drizzle-orm/pg-core";
 
-// IMPORTANT! ID fields should ALWAYS use UUID types, EXCEPT the BetterAuth tables.
+// ===========================================
+// Meeting Tables
+// ===========================================
 
-
-export const user = pgTable(
-  "user",
+export const meetings = pgTable(
+  "meetings",
   {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    email: text("email").notNull().unique(),
-    emailVerified: boolean("email_verified").default(false).notNull(),
-    image: text("image"),
+    id: serial("id").primaryKey(),
+    title: varchar("title", { length: 255 }),
+    startedAt: timestamp("started_at").defaultNow().notNull(),
+    endedAt: timestamp("ended_at"),
+    transcript: text("transcript"),
+    summary: text("summary"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [index("user_email_idx").on(table.email)]
+  (table) => [index("meetings_started_at_idx").on(table.startedAt)]
 );
 
-export const session = pgTable(
-  "session",
+export const actionItems = pgTable(
+  "action_items",
   {
-    id: text("id").primaryKey(),
-    expiresAt: timestamp("expires_at").notNull(),
-    token: text("token").notNull().unique(),
+    id: serial("id").primaryKey(),
+    meetingId: integer("meeting_id").references(() => meetings.id, {
+      onDelete: "cascade",
+    }),
+    assignee: varchar("assignee", { length: 255 }),
+    task: text("task").notNull(),
+    dueDate: timestamp("due_date"),
+    completed: boolean("completed").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-    ipAddress: text("ip_address"),
-    userAgent: text("user_agent"),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-  },
-  (table) => [
-    index("session_user_id_idx").on(table.userId),
-    index("session_token_idx").on(table.token),
-  ]
-);
-
-export const account = pgTable(
-  "account",
-  {
-    id: text("id").primaryKey(),
-    accountId: text("account_id").notNull(),
-    providerId: text("provider_id").notNull(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    accessToken: text("access_token"),
-    refreshToken: text("refresh_token"),
-    idToken: text("id_token"),
-    accessTokenExpiresAt: timestamp("access_token_expires_at"),
-    refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
-    scope: text("scope"),
-    password: text("password"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .defaultNow()
+      .$onUpdate(() => new Date())
       .notNull(),
   },
   (table) => [
-    index("account_user_id_idx").on(table.userId),
-    index("account_provider_account_idx").on(table.providerId, table.accountId),
+    index("action_items_meeting_id_idx").on(table.meetingId),
+    index("action_items_completed_idx").on(table.completed),
   ]
 );
 
-export const verification = pgTable("verification", {
-  id: text("id").primaryKey(),
-  identifier: text("identifier").notNull(),
-  value: text("value").notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+// ===========================================
+// Settings Table (Admin Configuration)
+// ===========================================
+
+export const settings = pgTable("settings", {
+  key: varchar("key", { length: 255 }).primaryKey(),
+  value: text("value"),
   updatedAt: timestamp("updated_at")
     .defaultNow()
-    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .$onUpdate(() => new Date())
     .notNull(),
 });
+
+// ===========================================
+// Documents Table (RAG Metadata)
+// ===========================================
+
+export const documents = pgTable(
+  "documents",
+  {
+    id: serial("id").primaryKey(),
+    filename: varchar("filename", { length: 255 }).notNull(),
+    originalName: varchar("original_name", { length: 255 }),
+    mimeType: varchar("mime_type", { length: 100 }),
+    fileSize: integer("file_size"),
+    chromadbCollectionId: varchar("chromadb_collection_id", { length: 255 }),
+    uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+    processedAt: timestamp("processed_at"),
+    chunkCount: integer("chunk_count"),
+  },
+  (table) => [index("documents_uploaded_at_idx").on(table.uploadedAt)]
+);
+
+// ===========================================
+// Type Exports
+// ===========================================
+
+export type Meeting = typeof meetings.$inferSelect;
+export type NewMeeting = typeof meetings.$inferInsert;
+
+export type ActionItem = typeof actionItems.$inferSelect;
+export type NewActionItem = typeof actionItems.$inferInsert;
+
+export type Setting = typeof settings.$inferSelect;
+export type NewSetting = typeof settings.$inferInsert;
+
+export type Document = typeof documents.$inferSelect;
+export type NewDocument = typeof documents.$inferInsert;

@@ -1,250 +1,162 @@
-# Agentic Coding Boilerplate - AI Assistant Guidelines
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-This is a Next.js 16 boilerplate for building AI-powered applications with authentication, database, and modern UI components.
+AI Meeting Brainstorm Assistant — a local AI voice assistant for team meetings (5-10 people) that acts as an ambient participant. Built on the Agentic Coding Starter Kit with significant modifications for local-first, privacy-focused voice AI.
 
-### Tech Stack
+**Vision:** "Your meeting room's memory — always listening, never leaking, instantly helpful."
 
-- **Framework**: Next.js 16 with App Router, React 19, TypeScript
-- **AI Integration**: Vercel AI SDK 5 + OpenRouter (access to 100+ AI models)
-- **Authentication**: BetterAuth with Email/Password
-- **Database**: PostgreSQL with Drizzle ORM
-- **UI**: shadcn/ui components with Tailwind CSS 4
-- **Styling**: Tailwind CSS with dark mode support (next-themes)
+## Key Architecture Decisions
 
-## AI Integration with OpenRouter
+### Local-First Stack (Modifications from Starter Kit)
 
-### Key Points
+| Component | Starter Kit | This Project |
+|-----------|-------------|--------------|
+| AI Provider | OpenRouter (cloud) | **Ollama (local)** |
+| Auth | Better Auth | **Simple PIN** |
+| Speech-to-Text | None | **Faster-Whisper** (Python service) |
+| Text-to-Speech | None | **Piper** (Python service) |
+| Document Search | None | **ChromaDB** (RAG) |
+| Wake Word | None | **Porcupine** |
 
-- This project uses **OpenRouter** as the AI provider, NOT direct OpenAI
-- OpenRouter provides access to 100+ AI models through a single unified API
-- Default model: `openai/gpt-5-mini` (configurable via `OPENROUTER_MODEL` env var)
-- Users browse models at: https://openrouter.ai/models
-- Users get API keys from: https://openrouter.ai/settings/keys
+### What's Kept from Starter Kit
 
-### AI Implementation Files
+- Next.js 16 with App Router
+- shadcn/ui components
+- PostgreSQL + Drizzle ORM
+- Vercel AI SDK (with Ollama provider instead of OpenRouter)
+- Tailwind CSS 4
 
-- `src/app/api/chat/route.ts` - Chat API endpoint using OpenRouter
-- Package: `@openrouter/ai-sdk-provider` (not `@ai-sdk/openai`)
-- Import: `import { openrouter } from "@openrouter/ai-sdk-provider"`
+### What's Been Removed
 
-## Project Structure
+- Better Auth (`lib/auth.ts`, `lib/auth-client.ts`)
+- Login/signup/dashboard pages
+- OpenRouter configuration
+- User account system
 
+## Commands
+
+```bash
+pnpm run dev          # Start dev server (DON'T run - ask user)
+pnpm run build        # Production build (runs db:migrate first)
+pnpm run lint         # ESLint - ALWAYS run after changes
+pnpm run typecheck    # TypeScript check - ALWAYS run after changes
+pnpm run check        # Runs both lint and typecheck
+
+# Database
+pnpm run db:generate  # Generate migrations after schema changes
+pnpm run db:migrate   # Apply migrations
+pnpm run db:push      # Push schema directly (dev only)
+pnpm run db:studio    # Drizzle Studio GUI
 ```
-src/
-├── app/                          # Next.js App Router
-│   ├── (auth)/                  # Auth route group
-│   │   ├── login/               # Login page
-│   │   ├── register/            # Registration page
-│   │   ├── forgot-password/     # Forgot password page
-│   │   └── reset-password/      # Reset password page
-│   ├── api/
-│   │   ├── auth/[...all]/       # Better Auth catch-all route
-│   │   ├── chat/route.ts        # AI chat endpoint (OpenRouter)
-│   │   └── diagnostics/         # System diagnostics
-│   ├── chat/page.tsx            # AI chat interface (protected)
-│   ├── dashboard/page.tsx       # User dashboard (protected)
-│   ├── profile/page.tsx         # User profile (protected)
-│   ├── page.tsx                 # Home/landing page
-│   └── layout.tsx               # Root layout
-├── components/
-│   ├── auth/                    # Authentication components
-│   │   ├── sign-in-button.tsx   # Sign in form
-│   │   ├── sign-up-form.tsx     # Sign up form
-│   │   ├── forgot-password-form.tsx
-│   │   ├── reset-password-form.tsx
-│   │   ├── sign-out-button.tsx
-│   │   └── user-profile.tsx
-│   ├── ui/                      # shadcn/ui components
-│   │   ├── button.tsx
-│   │   ├── card.tsx
-│   │   ├── dialog.tsx
-│   │   ├── dropdown-menu.tsx
-│   │   ├── avatar.tsx
-│   │   ├── badge.tsx
-│   │   ├── separator.tsx
-│   │   ├── mode-toggle.tsx      # Dark/light mode toggle
-│   │   └── github-stars.tsx
-│   ├── site-header.tsx          # Main navigation header
-│   ├── site-footer.tsx          # Footer component
-│   ├── theme-provider.tsx       # Dark mode provider
-│   ├── setup-checklist.tsx      # Setup guide component
-│   └── starter-prompt-modal.tsx # Starter prompts modal
-└── lib/
-    ├── auth.ts                  # Better Auth server config
-    ├── auth-client.ts           # Better Auth client hooks
-    ├── db.ts                    # Database connection
-    ├── schema.ts                # Drizzle schema (users, sessions, etc.)
-    ├── storage.ts               # File storage abstraction (Vercel Blob / local)
-    └── utils.ts                 # Utility functions (cn, etc.)
+
+**Critical:** Always run `pnpm run lint && pnpm run typecheck` after completing changes.
+
+## AI Provider: Ollama via OpenAI-Compatible API
+
+This project uses local Ollama via its OpenAI-compatible endpoint with @ai-sdk/openai.
+
+```typescript
+// CORRECT - Use Ollama via OpenAI-compatible API
+import { chatModel } from '@/lib/ollama';
+import { generateText, streamText } from 'ai';
+
+const response = await generateText({
+  model: chatModel,
+  prompt: '...',
+});
+
+// The ollama.ts module configures the OpenAI provider for Ollama:
+// import { createOpenAI } from '@ai-sdk/openai';
+// const ollama = createOpenAI({
+//   baseURL: 'http://localhost:11434/v1',
+//   apiKey: 'ollama',
+// });
+
+// WRONG - Don't use OpenRouter
+import { openrouter } from '@openrouter/ai-sdk-provider'; // ❌
 ```
 
 ## Environment Variables
 
-Required environment variables (see `env.example`):
-
-```env
-# Database
-POSTGRES_URL=postgresql://user:password@localhost:5432/db_name
-
-# Better Auth
-BETTER_AUTH_SECRET=32-char-random-string
-
-# AI via OpenRouter
-OPENROUTER_API_KEY=sk-or-v1-your-key
-OPENROUTER_MODEL=openai/gpt-5-mini  # or any model from openrouter.ai/models
-
-# App
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-
-# File Storage (optional)
-BLOB_READ_WRITE_TOKEN=  # Leave empty for local dev, set for Vercel Blob in production
-```
-
-## Available Scripts
-
 ```bash
-npm run dev          # Start dev server (DON'T run this yourself - ask user)
-npm run build        # Build for production (runs db:migrate first)
-npm run build:ci     # Build without database (for CI/CD pipelines)
-npm run start        # Start production server
-npm run lint         # Run ESLint (ALWAYS run after changes)
-npm run typecheck    # TypeScript type checking (ALWAYS run after changes)
-npm run db:generate  # Generate database migrations
-npm run db:migrate   # Run database migrations
-npm run db:push      # Push schema changes to database
-npm run db:studio    # Open Drizzle Studio (database GUI)
-npm run db:dev       # Push schema for development
-npm run db:reset     # Reset database (drop all tables)
+# Database
+POSTGRES_URL="postgresql://user:password@localhost:5432/meeting_assistant"
+
+# Ollama (local LLM)
+OLLAMA_BASE_URL="http://localhost:11434"
+OLLAMA_MODEL="llama3.2"
+OLLAMA_FAST_MODEL="llama3.2:1b"
+
+# Python Services (future phases)
+WHISPER_SERVICE_URL="http://localhost:8001"
+PIPER_SERVICE_URL="http://localhost:8002"
+CHROMADB_URL="http://localhost:8003"
+
+# Admin (replaces Better Auth)
+ADMIN_PIN="1234"
+
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
-## Documentation Files
+## Project Structure (Target)
 
-The project includes technical documentation in `docs/`:
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── chat/           # Modify for Ollama
+│   │   ├── transcribe/     # NEW - Whisper endpoint
+│   │   ├── speak/          # NEW - Piper endpoint
+│   │   └── documents/      # NEW - RAG endpoints
+│   ├── meeting/            # NEW - Main meeting UI
+│   └── admin/              # NEW - PIN-protected settings
+├── components/
+│   ├── ui/                 # Keep - shadcn components
+│   ├── breathing-orb.tsx   # NEW
+│   ├── insight-card.tsx    # NEW
+│   └── audio-visualizer.tsx # NEW
+├── lib/
+│   ├── db.ts               # Keep
+│   ├── schema.ts           # Modify - meeting tables
+│   ├── ollama.ts           # NEW
+│   ├── whisper.ts          # NEW
+│   ├── piper.ts            # NEW
+│   └── chromadb.ts         # NEW
+└── hooks/
+    ├── use-audio.ts        # NEW
+    └── use-wake-word.ts    # NEW
+services/                   # Python services (Whisper, Piper)
+```
 
-- `docs/technical/ai/streaming.md` - AI streaming implementation guide
-- `docs/technical/ai/structured-data.md` - Structured data extraction
-- `docs/technical/react-markdown.md` - Markdown rendering guide
-- `docs/technical/betterauth/polar.md` - Polar payment integration
-- `docs/business/starter-prompt.md` - Business context for AI prompts
+## Database Schema (New Tables)
 
-## Guidelines for AI Assistants
+The schema in `src/lib/schema.ts` should include:
 
-### CRITICAL RULES
+- `meetings` - Meeting sessions with transcripts and summaries
+- `actionItems` - Auto-detected tasks from meetings
+- `settings` - Admin configuration (key-value)
+- `documents` - Uploaded document metadata for RAG
 
-1. **ALWAYS run lint and typecheck** after completing changes:
+See `docs/PROJECT_PLAN.md` for full schema definitions.
 
-   ```bash
-   npm run lint && npm run typecheck
-   ```
+## Hardware Context
 
-2. **NEVER start the dev server yourself**
+- **Server:** ASUS Ascent GX10 (128GB RAM) - runs all local AI
+- **Microphone:** ReSpeaker XVF3800 (4-mic array, 360° capture)
+- **100% Local:** No cloud services, no data leaves the room
 
-   - If you need dev server output, ask the user to provide it
-   - Don't run `npm run dev` or `pnpm dev`
+## Documentation
 
-3. **Use OpenRouter, NOT OpenAI directly**
+- `docs/PROJECT_PLAN.md` - Full project plan, phases, and checklists
+- `docs/technical/ai/streaming.md` - AI streaming patterns (from starter kit)
 
-   - Import from `@openrouter/ai-sdk-provider`
-   - Use `openrouter()` function, not `openai()`
-   - Model names follow OpenRouter format: `provider/model-name`
+## Guidelines
 
-4. **Styling Guidelines**
-
-   - Stick to standard Tailwind CSS utility classes
-   - Use shadcn/ui color tokens (e.g., `bg-background`, `text-foreground`)
-   - Avoid custom colors unless explicitly requested
-   - Support dark mode with appropriate Tailwind classes
-
-5. **Authentication**
-
-   - Server-side: Import from `@/lib/auth` (Better Auth instance)
-   - Client-side: Import hooks from `@/lib/auth-client`
-   - Protected routes should check session in Server Components
-   - Use existing auth components from `src/components/auth/`
-
-6. **Database Operations**
-
-   - Use Drizzle ORM (imported from `@/lib/db`)
-   - Schema is defined in `@/lib/schema`
-   - Always run migrations after schema changes
-   - PostgreSQL is the database (not SQLite, MySQL, etc.)
-
-7. **File Storage**
-
-   - Use the storage abstraction from `@/lib/storage`
-   - Automatically uses local storage (dev) or Vercel Blob (production)
-   - Import: `import { upload, deleteFile } from "@/lib/storage"`
-   - Example: `const result = await upload(buffer, "avatar.png", "avatars")`
-   - Storage switches based on `BLOB_READ_WRITE_TOKEN` environment variable
-
-8. **Component Creation**
-
-   - Use existing shadcn/ui components when possible
-   - Follow the established patterns in `src/components/ui/`
-   - Support both light and dark modes
-   - Use TypeScript with proper types
-
-9. **API Routes**
-   - Follow Next.js 16 App Router conventions
-   - Use Route Handlers (route.ts files)
-   - Return Response objects
-   - Handle errors appropriately
-
-### Best Practices
-
-- Read existing code patterns before creating new features
-- Maintain consistency with established file structure
-- Use the documentation files when implementing related features
-- Test changes with lint and typecheck before considering complete
-- When modifying AI functionality, refer to `docs/technical/ai/` guides
-
-### Common Tasks
-
-**Adding a new page:**
-
-1. Create in `src/app/[route]/page.tsx`
-2. Use Server Components by default
-3. Add to navigation if needed
-
-**Adding a new API route:**
-
-1. Create in `src/app/api/[route]/route.ts`
-2. Export HTTP method handlers (GET, POST, etc.)
-3. Use proper TypeScript types
-
-**Adding authentication to a page:**
-
-1. Import auth instance: `import { auth } from "@/lib/auth"`
-2. Get session: `const session = await auth.api.getSession({ headers: await headers() })`
-3. Check session and redirect if needed
-
-**Working with the database:**
-
-1. Update schema in `src/lib/schema.ts`
-2. Generate migration: `npm run db:generate`
-3. Apply migration: `npm run db:migrate`
-4. Import `db` from `@/lib/db` to query
-
-**Modifying AI chat:**
-
-1. Backend: `src/app/api/chat/route.ts`
-2. Frontend: `src/app/chat/page.tsx`
-3. Reference streaming docs: `docs/technical/ai/streaming.md`
-4. Remember to use OpenRouter, not direct OpenAI
-
-**Working with file storage:**
-
-1. Import storage functions: `import { upload, deleteFile } from "@/lib/storage"`
-2. Upload files: `const result = await upload(fileBuffer, "filename.png", "folder")`
-3. Delete files: `await deleteFile(result.url)`
-4. Storage automatically uses local filesystem in dev, Vercel Blob in production
-5. Local files are saved to `public/uploads/` and served at `/uploads/`
-
-## Package Manager
-
-This project uses **pnpm** (see `pnpm-lock.yaml`). When running commands:
-
-- Use `pnpm` instead of `npm` when possible
-- Scripts defined in package.json work with `pnpm run [script]`
+1. **Use Ollama, not OpenRouter** - All AI calls go through local Ollama
+2. **No user auth** - Only simple PIN for admin access
+3. **Privacy first** - No external API calls, everything runs locally
+4. **Voice-first UX** - Support for barge-in interruption and natural conversation
+5. **Dual output** - Both voice (TTS) and visual (insight cards) responses

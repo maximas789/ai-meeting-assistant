@@ -46,3 +46,8 @@ next-env.d.ts
 public/uploads
 
 nul
+# Python virtual environments
+venv/
+*.pyc
+__pycache__/
+

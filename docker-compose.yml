@@ -1,9 +1,155 @@
+# AI Meeting Assistant - Docker Compose
+# This file defines all services required to run the meeting assistant
+
 services:
+  # PostgreSQL Database with pgvector for embeddings
   postgres:
     image: pgvector/pgvector:pg18
+    container_name: meeting-assistant-db
     environment:
-      POSTGRES_DB: postgres_dev
-      POSTGRES_USER: dev_user
-      POSTGRES_PASSWORD: dev_password
+      POSTGRES_DB: meeting_assistant
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Ollama LLM Server
+  ollama:
+    image: ollama/ollama
+    container_name: meeting-assistant-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  # Faster-Whisper STT Service
+  whisper:
+    build:
+      context: ./services/whisper
+      dockerfile: Dockerfile
+    container_name: meeting-assistant-whisper
+    ports:
+      - "8001:8001"
+    environment:
+      - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-base}
+      - WHISPER_DEVICE=${WHISPER_DEVICE:-cpu}
+      - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-int8}
+    volumes:
+      - whisper_models:/app/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+
+  # Piper TTS Service
+  piper:
+    build:
+      context: ./services/piper
+      dockerfile: Dockerfile
+    container_name: meeting-assistant-piper
+    ports:
+      - "8002:8002"
+    environment:
+      - PIPER_VOICE=${PIPER_VOICE:-en_US-amy-medium}
+      - PIPER_SPEAKER=${PIPER_SPEAKER:-0}
+    volumes:
+      - piper_models:/app/models
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    restart: unless-stopped
+
+  # ChromaDB Vector Database for RAG
+  chromadb:
+    image: chromadb/chroma
+    container_name: meeting-assistant-chromadb
+    ports:
+      - "8003:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER=chromadb.auth.token.TokenConfigServerAuthCredentialsProvider
+      - ALLOW_RESET=true
+      - ANONYMIZED_TELEMETRY=false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Next.js Application (optional - for production deployment)
+  # Uncomment to run the app in Docker
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: meeting-assistant-app
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/meeting_assistant
+  #     - OLLAMA_BASE_URL=http://ollama:11434
+  #     - WHISPER_SERVICE_URL=http://whisper:8001
+  #     - PIPER_SERVICE_URL=http://piper:8002
+  #     - CHROMADB_URL=http://chromadb:8000
+  #     - ADMIN_PIN=${ADMIN_PIN:-1234}
+  #     - NEXT_PUBLIC_APP_URL=http://localhost:3000
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     ollama:
+  #       condition: service_started
+  #     whisper:
+  #       condition: service_healthy
+  #     piper:
+  #       condition: service_healthy
+  #     chromadb:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+    name: meeting-assistant-postgres
+  ollama_data:
+    name: meeting-assistant-ollama
+  whisper_models:
+    name: meeting-assistant-whisper-models
+  piper_models:
+    name: meeting-assistant-piper-models
+  chroma_data:
+    name: meeting-assistant-chroma
+
+# Network configuration (optional)
+# networks:
+#   default:
+#     name: meeting-assistant-network

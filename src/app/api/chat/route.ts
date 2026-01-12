@@ -1,8 +1,8 @@
-import { headers } from "next/headers";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { streamText, UIMessage, convertToModelMessages } from "ai";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { queryDocuments, checkChromaDBHealth } from "@/lib/chromadb";
+import { chatModel } from "@/lib/ollama";
+import { getSetting, getResponseLengthPrompt } from "@/lib/settings";
 
 // Zod schema for message validation
 const messagePartSchema = z.object({
@@ -19,18 +19,10 @@ const messageSchema = z.object({
 
 const chatRequestSchema = z.object({
   messages: z.array(messageSchema).max(100, "Too many messages"),
+  useRAG: z.boolean().optional().default(true),
 });
 
 export async function POST(req: Request) {
-  // Verify user is authenticated
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
   // Parse and validate request body
   let body: unknown;
   try {
@@ -56,25 +48,73 @@ export async function POST(req: Request) {
     );
   }
 
-  const { messages }: { messages: UIMessage[] } = parsed.data as { messages: UIMessage[] };
+  const { messages, useRAG }: { messages: UIMessage[]; useRAG: boolean } =
+    parsed.data as { messages: UIMessage[]; useRAG: boolean };
 
-  // Initialize OpenRouter with API key from environment
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    return new Response(JSON.stringify({ error: "OpenRouter API key not configured" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+  // Convert UI messages to model messages (async in AI SDK v6)
+  const modelMessages = await convertToModelMessages(messages);
 
-  const openrouter = createOpenRouter({ apiKey });
+  // Get the latest user message for RAG query
+  const lastUserMessage = messages.filter((m) => m.role === "user").pop();
+
+  // Extract query text from the message for RAG
+  const queryText =
+    lastUserMessage?.parts
+      ?.filter((p): p is { type: "text"; text: string } => p.type === "text")
+      .map((p) => p.text)
+      .join(" ") || "";
+
+  // Parallelize RAG query and settings fetch for better performance
+  const [ragResults, responseLength] = await Promise.all([
+    // RAG query (if enabled)
+    useRAG && queryText
+      ? (async () => {
+          try {
+            const isChromaAvailable = await checkChromaDBHealth();
+            if (!isChromaAvailable) return [];
+            return await queryDocuments(queryText, 3);
+          } catch (error) {
+            console.error("RAG query failed:", error);
+            return [];
+          }
+        })()
+      : Promise.resolve([]),
+    // Settings fetch
+    getSetting("responseLength"),
+  ]);
+
+  // Build RAG context from results
+  const ragContext =
+    ragResults.length > 0
+      ? `
+
+RELEVANT DOCUMENT CONTEXT:
+${ragResults
+  .map(
+    (r) =>
+      `[Source: ${r.source}]
+${r.text}`
+  )
+  .join("\n\n---\n\n")}
+
+Use this context to help answer the user's question when relevant. Cite sources when using information from documents.`
+      : "";
+
+  const responseLengthPrompt = getResponseLengthPrompt(responseLength);
+
+  const systemPrompt = `You are a helpful AI meeting assistant. You help teams during meetings by:
+- Answering questions about documents and past discussions
+- Providing concise, relevant information
+- Helping track action items and decisions
+- Being conversational yet professional
+
+${responseLengthPrompt}${ragContext}`;
 
   const result = streamText({
-    model: openrouter(process.env.OPENROUTER_MODEL || "openai/gpt-5-mini"),
-    messages: convertToModelMessages(messages),
+    model: chatModel,
+    messages: modelMessages,
+    system: systemPrompt,
   });
 
-  return (
-    result as unknown as { toUIMessageStreamResponse: () => Response }
-  ).toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse();
 }

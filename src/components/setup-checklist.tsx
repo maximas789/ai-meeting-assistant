@@ -8,10 +8,8 @@ type DiagnosticsResponse = {
   timestamp: string;
   env: {
     POSTGRES_URL: boolean;
-    BETTER_AUTH_SECRET: boolean;
-    GOOGLE_CLIENT_ID: boolean;
-    GOOGLE_CLIENT_SECRET: boolean;
-    OPENROUTER_API_KEY: boolean;
+    OLLAMA_BASE_URL: boolean;
+    OLLAMA_MODEL: boolean;
     NEXT_PUBLIC_APP_URL: boolean;
   };
   database: {
@@ -19,16 +17,9 @@ type DiagnosticsResponse = {
     schemaApplied: boolean;
     error?: string;
   };
-  auth: {
+  ollama: {
     configured: boolean;
-    routeResponding: boolean | null;
-  };
-  ai: {
-    configured: boolean;
-  };
-  storage: {
-    configured: boolean;
-    type: "local" | "remote";
+    reachable: boolean | null;
   };
   overallStatus: "ok" | "warn" | "error";
 };
@@ -73,13 +64,8 @@ export function SetupChecklist() {
     {
       key: "env",
       label: "Environment variables",
-      ok:
-        !!data?.env.POSTGRES_URL &&
-        !!data?.env.BETTER_AUTH_SECRET &&
-        !!data?.env.GOOGLE_CLIENT_ID &&
-        !!data?.env.GOOGLE_CLIENT_SECRET,
-      detail:
-        "Requires POSTGRES_URL, BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET",
+      ok: !!data?.env.POSTGRES_URL,
+      detail: "Requires POSTGRES_URL for database connection",
     },
     {
       key: "db",
@@ -90,31 +76,12 @@ export function SetupChecklist() {
         : undefined,
     },
     {
-      key: "auth",
-      label: "Auth configured",
-      ok: !!data?.auth.configured,
-      detail:
-        data?.auth.routeResponding === false
-          ? "Auth route not responding"
-          : undefined,
-    },
-    {
-      key: "ai",
-      label: "AI integration (optional)",
-      ok: !!data?.ai.configured,
-      detail: !data?.ai.configured
-        ? "Set OPENROUTER_API_KEY for AI chat"
-        : undefined,
-    },
-    {
-      key: "storage",
-      label: "File storage (optional)",
-      ok: true, // Always considered "ok" since local storage works
-      detail: data?.storage
-        ? data.storage.type === "remote"
-          ? "Using Vercel Blob storage"
-          : "Using local storage (public/uploads/)"
-        : undefined,
+      key: "ollama",
+      label: "Ollama LLM",
+      ok: !!data?.ollama.reachable,
+      detail: !data?.ollama.reachable
+        ? "Start Ollama with: ollama serve"
+        : "Ollama is running",
     },
   ] as const;
 

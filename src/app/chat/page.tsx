@@ -5,9 +5,7 @@ import { useChat } from "@ai-sdk/react";
 import { Copy, Check, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
-import { UserProfile } from "@/components/auth/user-profile";
 import { Button } from "@/components/ui/button";
-import { useSession } from "@/lib/auth-client";
 import type { Components } from "react-markdown";
 
 const H1: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = (props) => (
@@ -116,8 +114,8 @@ function getMessageText(message: MaybePartsMessage): string {
   const parts = Array.isArray(message.parts)
     ? message.parts
     : Array.isArray(message.content)
-    ? message.content
-    : [];
+      ? message.content
+      : [];
   return parts
     .filter((p) => p?.type === "text" && p.text)
     .map((p) => p.text)
@@ -129,8 +127,8 @@ function renderMessageContent(message: MaybePartsMessage): ReactNode {
   const parts = Array.isArray(message.parts)
     ? message.parts
     : Array.isArray(message.content)
-    ? message.content
-    : [];
+      ? message.content
+      : [];
   return parts.map((p, idx) =>
     p?.type === "text" && p.text ? (
       <ReactMarkdown key={idx} components={markdownComponents}>
@@ -189,7 +187,6 @@ function ThinkingIndicator() {
 const STORAGE_KEY = "chat-messages";
 
 export default function ChatPage() {
-  const { data: session, isPending } = useSession();
   const { messages, sendMessage, status, error, setMessages } = useChat({
     onError: (err) => {
       toast.error(err.message || "Failed to send message");
@@ -227,20 +224,6 @@ export default function ChatPage() {
     toast.success("Chat cleared");
   };
 
-  if (isPending) {
-    return <div className="container mx-auto px-4 py-12">Loading...</div>;
-  }
-
-  if (!session) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-3xl mx-auto">
-          <UserProfile />
-        </div>
-      </div>
-    );
-  }
-
   const isStreaming = status === "streaming";
 
   return (
@@ -249,9 +232,6 @@ export default function ChatPage() {
         <div className="flex justify-between items-center mb-6 pb-4 border-b">
           <h1 className="text-2xl font-bold">AI Chat</h1>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              Welcome, {session.user.name}!
-            </span>
             {messages.length > 0 && (
               <Button variant="ghost" size="sm" onClick={clearMessages}>
                 Clear chat

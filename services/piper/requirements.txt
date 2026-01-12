@@ -1,0 +1,12 @@
+# Piper TTS Service Dependencies
+
+# Web framework
+fastapi==0.115.0
+uvicorn[standard]==0.31.0
+
+# Piper is installed via system package or binary
+# The piper executable is called via subprocess
+
+# Optional: for audio format conversion
+# pydub>=0.25.1
+# ffmpeg-python>=0.2.0

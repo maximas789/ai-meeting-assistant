@@ -18,40 +18,38 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Agentic Coding Boilerplate",
-    template: "%s | Agentic Coding Boilerplate",
+    default: "AI Meeting Assistant",
+    template: "%s | AI Meeting Assistant",
   },
   description:
-    "Complete agentic coding boilerplate with authentication, database, AI integration, and modern tooling - perfect for building AI-powered applications and autonomous agents by Leon van Zyl",
+    "A local-first AI voice assistant for team meetings. Always listening, never leaking, instantly helpful.",
   keywords: [
-    "Next.js",
-    "React",
-    "TypeScript",
     "AI",
-    "OpenRouter",
-    "Boilerplate",
-    "Authentication",
-    "PostgreSQL",
+    "Meeting Assistant",
+    "Voice AI",
+    "Local AI",
+    "Ollama",
+    "Speech to Text",
+    "RAG",
+    "Privacy",
   ],
-  authors: [{ name: "Leon van Zyl" }],
-  creator: "Leon van Zyl",
   openGraph: {
     type: "website",
     locale: "en_US",
-    siteName: "Agentic Coding Boilerplate",
-    title: "Agentic Coding Boilerplate",
+    siteName: "AI Meeting Assistant",
+    title: "AI Meeting Assistant",
     description:
-      "Complete agentic coding boilerplate with authentication, database, AI integration, and modern tooling",
+      "A local-first AI voice assistant for team meetings. Always listening, never leaking, instantly helpful.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Agentic Coding Boilerplate",
+    title: "AI Meeting Assistant",
     description:
-      "Complete agentic coding boilerplate with authentication, database, AI integration, and modern tooling",
+      "A local-first AI voice assistant for team meetings. Always listening, never leaking, instantly helpful.",
   },
   robots: {
-    index: true,
-    follow: true,
+    index: false,
+    follow: false,
   },
 };
 
@@ -59,20 +57,11 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  name: "Agentic Coding Boilerplate",
+  name: "AI Meeting Assistant",
   description:
-    "Complete agentic coding boilerplate with authentication, database, AI integration, and modern tooling",
-  applicationCategory: "DeveloperApplication",
+    "A local-first AI voice assistant for team meetings. Always listening, never leaking, instantly helpful.",
+  applicationCategory: "BusinessApplication",
   operatingSystem: "Any",
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "USD",
-  },
-  author: {
-    "@type": "Person",
-    name: "Leon van Zyl",
-  },
 };
 
 export default function RootLayout({

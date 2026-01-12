@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Agentic Coding Boilerplate",
-    short_name: "Agentic",
+    name: "AI Meeting Assistant",
+    short_name: "Meeting AI",
     description:
-      "Complete agentic coding boilerplate with authentication, database, AI integration, and modern tooling",
+      "A local-first AI voice assistant for team meetings. Always listening, never leaking, instantly helpful.",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
