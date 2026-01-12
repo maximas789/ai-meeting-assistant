@@ -1,7 +1,7 @@
 # Faster-Whisper STT Service Dockerfile
 
 # Use Python 3.11 for compatibility with faster-whisper
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 # Set working directory
 WORKDIR /app
