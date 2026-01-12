@@ -21,8 +21,8 @@
     "db:reset": "drizzle-kit drop && drizzle-kit push"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^3.0.7",
-    "@ai-sdk/react": "^3.0.29",
+    "@ai-sdk/openai": "^3.0.8",
+    "@ai-sdk/react": "^3.0.31",
     "@picovoice/porcupine-web": "^4.0.0",
     "@picovoice/web-voice-processor": "^4.0.9",
     "@radix-ui/react-avatar": "^1.1.11",
@@ -32,7 +32,7 @@
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
     "@vercel/blob": "^2.0.0",
-    "ai": "^6.0.27",
+    "ai": "^6.0.29",
     "chromadb": "^3.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
