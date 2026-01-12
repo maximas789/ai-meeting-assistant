@@ -1,5 +1,8 @@
 # AI Meeting Brainstorm Assistant
 
+[![CI](https://github.com/maximas789/ai-meeting-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/maximas789/ai-meeting-assistant/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 > Your meeting room's memory — always listening, never leaking, instantly helpful.
 
 A local-first AI voice assistant for team meetings that acts as an ambient participant. Runs entirely on-premise with no cloud dependencies.
