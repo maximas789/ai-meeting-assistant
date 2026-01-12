@@ -1,0 +1,55 @@
+name: Docker Build
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'services/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/docker.yml'
+  pull_request:
+    branches: [master, main]
+    paths:
+      - 'services/**'
+      - 'docker-compose.yml'
+
+jobs:
+  build-whisper:
+    name: Build Whisper Service
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Whisper image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/whisper
+          push: false
+          tags: ai-meeting-assistant/whisper:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-piper:
+    name: Build Piper Service
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Piper image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/piper
+          push: false
+          tags: ai-meeting-assistant/piper:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
